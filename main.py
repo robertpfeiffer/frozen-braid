@@ -103,15 +103,15 @@ help_text=["The battle will last TEN SECONDS",
            "Take as long as you want to plan",
            "You can move enemy units to test your strategy",
            " ",
-           "[SHIFT] rewinds time, [SHIFT]+[LEFT] rewinds faster",
+           "[SHIFT] rewinds time, [SHIFT]+[S] rewinds faster",
            "[SPACE] stops time",
            " ",
            "Only when time is up",
-           " [N] selects next unit",
+           " [N]/[M] selects next/prev unit",
            " [RETURN] ends your move (give PC to other player)",
            " ",
-           "[W][A][S][D] and arrows move units",
-           "[X] or [E] shoots",
+           "[W][A][S][D] move units",
+           "[X] or [E] or clicking shoots",
            "Units have a machine gun, a shotgun or rockets",
            "Rocket Guy aims with the mouse, but has only 3 shots",
            " ",
@@ -125,7 +125,10 @@ hud_help=[font0.render(a,1,(200,200,200,200)) for a in
 
 hud_grey=screen.copy().convert_alpha()
 hud_grey.fill((50,50,50,180))
-hud_hint=font0.render("press [H] for help and [SHIFT] to rewind or [L] to leave",1,(200,200,200,150))
+hud_hint=font0.render("press [H] for help and [SHIFT] to rewind or [ESC] to leave",1,(200,200,200,150))
+hud_hint2=font0.render("press [RETURN] to confirm your move when you are ready",1,(200,200,200,150))
+hud_hint3=font0.render("hold [SHIFT][LEFT] fast rewind - [SHIFT][RIGHT] replay",1,(200,200,200,150))
+hud_hint4=font0.render("move with [W][A][S][D] - shoot with [X] or mouse",1,(200,200,200,150))
 
 mainloop=True
 write_replay=True
@@ -157,6 +160,8 @@ def rungame(replay=None):
     gameloop=True
     in_replay=False
 
+    stop_state=False
+
     if replay:
         committed,obstacles=replay
         event_log=committed
@@ -172,19 +177,24 @@ def rungame(replay=None):
             if event.type == pygame.QUIT:
                 mainloop=False
                 return
-            elif event.type == pygame.KEYDOWN and event.key==pygame.K_l:
+            elif event.type == pygame.KEYDOWN and event.key==pygame.K_ESCAPE:
                 return
+            elif event.type == pygame.KEYDOWN and event.key==pygame.K_SPACE:
+                stop_state=not stop_state
 
         screen.fill((10,10,50))
         direction=""
 
-        if (keys[pygame.K_SPACE] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT])):
+        if (stop_state and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT])):
             direction="||"
         elif not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]) and time==FPS*SECONDS:
             direction="||"
+            stop_state=False
             for event in events:
                 if event.type == pygame.KEYDOWN and event.key==pygame.K_n:
                     current_unit=(current_unit+1)%len(units)
+                if event.type == pygame.KEYDOWN and event.key==pygame.K_m:
+                    current_unit=(current_unit-1)%len(units)
                 elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index<2:
                     #commit current player's move
                     for unit_idx in range(len(units)):
@@ -199,6 +209,8 @@ def rungame(replay=None):
                     time=0
                     maxtime=0
                     player_index+=1
+                    if player_index==1:
+                        current_unit=3
                     if player_index==2:
                         event_log=committed
                 elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index==2:
@@ -209,15 +221,13 @@ def rungame(replay=None):
                     gameloop=False
 
         elif (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]):
+            stop_state=False
             if keys[pygame.K_RIGHT]:
                 time+=1
                 direction=">|"
-            elif keys[pygame.K_LEFT]:
+            elif keys[pygame.K_LEFT] or keys[pygame.K_s]:
                 time-=3
                 direction="<<"
-            elif keys[pygame.K_DOWN]:
-                time=0
-                direction="||"
             elif time>0:
                 time -=1
                 direction="<"
@@ -242,15 +252,18 @@ def rungame(replay=None):
                     if event.type == pygame.KEYDOWN and (event.key==pygame.K_x or event.key==pygame.K_e):
                         px,py=pygame.mouse.get_pos()
                         current_events.append(("shoot",(px/zoom,py/zoom)))
-                if (keys[pygame.K_RIGHT] or keys[pygame.K_d]):
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        px,py=pygame.mouse.get_pos()
+                        current_events.append(("shoot",(px/zoom,py/zoom)))
+                if (keys[pygame.K_d]):
                     if  unit.look==-1:
                         current_events.append(("turn",None))
                     current_events.append(("right",None))
-                if (keys[pygame.K_LEFT] or keys[pygame.K_a]):
+                if (keys[pygame.K_a]):
                     if unit.look==1:
                         current_events.append(("turn",None))
                     current_events.append(("left",None))
-                if (keys[pygame.K_UP] or keys[pygame.K_w]):
+                if (keys[pygame.K_w]):
                     current_events.append(("jump",None))
                 event_log[time][current_unit]=current_events
 
@@ -411,8 +424,26 @@ def rungame(replay=None):
             screen.blit(hud_grey,(0,0))
             for i in range(len(hud_help)):
                 screen.blit(hud_help[i],(10,50+i*20))
-        elif time==FPS*SECONDS:
+        elif time==FPS*SECONDS or stop_state:
             screen.blit(hud_hint,(10,440))
+
+        if time==FPS*SECONDS:
+            commanded_units=0
+            for unit in range(len(units)):
+                ev=False
+                for l in event_log:
+                    if l[unit]:
+                        ev=True
+                if ev:
+                    commanded_units+=1
+            if commanded_units==len(units):
+                screen.blit(hud_hint2,(10,400))
+
+        if direction=="<":
+            screen.blit(hud_hint3,(10,440))
+
+        if direction==">":
+            screen.blit(hud_hint4,(10,440))
 
         if player_index==2 and time==FPS*SECONDS:
             p1points=0
@@ -470,12 +501,10 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
         d_overlap=top+option*row-bottom_marg
         if d_overlap>0:
             top-=d_overlap
-
+        pad=4
+        marg=30
+        pygame.draw.rect(screen,(150,0,0),pygame.Rect(0,top-pad+option*row,640,fnt+2*pad))
         for i in range(len(options)):
-            if option==i:
-                pad=4
-                marg=30
-                pygame.draw.rect(screen,(150,0,0),pygame.Rect(0,top-pad+i*row,640,fnt+2*pad))
             if top+i*row>=top1:
                 screen.blit(font.render(options[i],1,(255,255,255)),(marg,top+i*row))
 
@@ -485,6 +514,8 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
                 return
             elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN:
                 return options[option]
+            elif event.type == pygame.KEYDOWN and event.key==pygame.K_ESCAPE:
+                return "back"
             elif event.type == pygame.KEYDOWN and event.key==pygame.K_UP:
                 if option>0:
                     option-=1
