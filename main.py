@@ -480,7 +480,7 @@ def rungame(replay=None):
                             ev=True
                     if ev:
                         commanded_units+=1
-                if commanded_units==len(units):
+                if commanded_units>2:
                     screen_real.blit(hud_hint2,(10*zoom,400*zoom))
                 else:
                     screen_real.blit(hud_hint5,(10*zoom,400*zoom))
