@@ -54,9 +54,10 @@ def intro(filename):
 
 intro("logo.png")
 
-font0=pygame.font.Font("orbitron-black.ttf", 18)
+font0=pygame.font.Font("Orbitron Medium.ttf", 18)
+fonth=pygame.font.Font("Orbitron Medium.ttf", 18*zoom)
 font=pygame.font.Font("orbitron-black.ttf", 36)
-font_win=pygame.font.Font("Ostrich Black.ttf", 160)
+font_win=pygame.font.Font("Ostrich Black.ttf", 150)
 
 FPS=30
 SECONDS=10
@@ -120,15 +121,16 @@ help_text=["The battle will last TEN SECONDS",
            "3. Both strategies are played against each other",
            "4. The player with more units after TEN SECONDS wins"]
 
-hud_help=[font0.render(a,1,(200,200,200,200)) for a in
+hud_help=[fonth.render(a,1,(200,200,200,200)) for a in
           help_text]
 
 hud_grey=screen.copy().convert_alpha()
-hud_grey.fill((50,50,50,180))
-hud_hint=font0.render("press [H] for help and [SHIFT] to rewind or [ESC] to leave",1,(200,200,200,150))
-hud_hint2=font0.render("press [RETURN] to confirm your move when you are ready",1,(200,200,200,150))
-hud_hint3=font0.render("hold [SHIFT][LEFT] fast rewind - [SHIFT][RIGHT] replay",1,(200,200,200,150))
-hud_hint4=font0.render("move with [W][A][S][D] - shoot with [X] or mouse",1,(200,200,200,150))
+hud_grey.fill((50,50,50,190))
+hud_hint=fonth.render("press [H] for help and [SHIFT] to rewind or [ESC] to leave",1,(200,200,200,150))
+hud_hint2=fonth.render("press [RETURN] to confirm your move when you are ready",1,(200,200,200,150))
+hud_hint3=fonth.render("hold [SHIFT][LEFT] fast rewind - [SHIFT][RIGHT] replay",1,(200,200,200,150))
+hud_hint4=fonth.render("move with [W][A][S][D] - shoot with [X] or mouse",1,(200,200,200,150))
+hud_hint5=fonth.render("select other unit [N]/[M]",1,(200,200,200,150))
 
 mainloop=True
 write_replay=True
@@ -277,8 +279,8 @@ def rungame(replay=None):
                 unit.resting=False
                 x,y=unit.pos
                 unit.downspeed+=0.3
-                if unit.downspeed>20:
-                    unit.downspeed=20
+                if unit.downspeed>15:
+                    unit.downspeed=15
                 for obstacle in obstacles:
                     for off in [1-unit.radius,0,unit.radius-1]:
                         if unit.downspeed>=0 and obstacle.collidepoint(x+off,y+unit.radius+1+unit.downspeed):
@@ -419,31 +421,8 @@ def rungame(replay=None):
 
         screen.blit(hud,(50,0))
         screen.blit(hud2,(0,0))
-
         if keys[pygame.K_h]:
             screen.blit(hud_grey,(0,0))
-            for i in range(len(hud_help)):
-                screen.blit(hud_help[i],(10,50+i*20))
-        elif time==FPS*SECONDS or stop_state:
-            screen.blit(hud_hint,(10,440))
-
-        if time==FPS*SECONDS:
-            commanded_units=0
-            for unit in range(len(units)):
-                ev=False
-                for l in event_log:
-                    if l[unit]:
-                        ev=True
-                if ev:
-                    commanded_units+=1
-            if commanded_units==len(units):
-                screen.blit(hud_hint2,(10,400))
-
-        if direction=="<":
-            screen.blit(hud_hint3,(10,440))
-
-        if direction==">":
-            screen.blit(hud_hint4,(10,440))
 
         if player_index==2 and time==FPS*SECONDS:
             p1points=0
@@ -468,6 +447,35 @@ def rungame(replay=None):
 
         if zoom>1:
             pygame.transform.scale(screen, screen_mode, screen_real)
+
+        if keys[pygame.K_h]:
+            for i in range(len(hud_help)):
+                screen_real.blit(hud_help[i],(10*zoom,(50+i*20)*zoom))
+        elif not in_replay and player_index!=2:
+            if time==FPS*SECONDS or stop_state:
+                screen_real.blit(hud_hint,(10*zoom,440*zoom))
+
+            if time==FPS*SECONDS:
+                commanded_units=0
+                for unit in range(len(units)):
+                    ev=False
+                    for l in event_log:
+                        if l[unit]:
+                            ev=True
+                    if ev:
+                        commanded_units+=1
+                if commanded_units==len(units):
+                    screen_real.blit(hud_hint2,(10*zoom,400*zoom))
+                else:
+                    screen_real.blit(hud_hint5,(10*zoom,400*zoom))
+
+
+            if direction=="<":
+                screen_real.blit(hud_hint3,(10*zoom,440*zoom))
+
+            if direction==">":
+                screen_real.blit(hud_hint4,(10*zoom,440*zoom))
+
         pygame.display.flip()
 
 
@@ -477,7 +485,14 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
     font=pygame.font.Font("orbitron-black.ttf", fnt)
     h1font=pygame.font.Font("orbitron-black.ttf", h1)
     time=0
-
+    subtitle=""
+    if heading=="Frozen Braid":
+        subtitle=random.choice(["2 players, 6 soldiers, 10 seconds - LD 27",
+                                "shotgun time travel tactics",
+                                "(c) 2013 Robert Pfeiffer",
+                                "red player goes first",
+                                "blame your loss on the randomly generated map",
+                                "tell your friends - there is no single player mode"])
     while mainloop:
         clock.tick(FPS)
         events = pygame.event.get()
@@ -485,6 +500,7 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
         screen.fill((50,50,80))
 
         screen.blit(h1font.render(heading,1,(255,255,255)),(50,50))
+        screen.blit(font0.render(subtitle,1,(255,255,255)),(90,110))
 
         time+=1
         if time==1200:
@@ -562,6 +578,7 @@ while mainloop:
                 pygame.mixer.music.stop()
     elif chosen=="Replays":
         replays=glob.glob("*.replay")
+        replays.sort()
         replay=menu(replays+["back"],20,25,heading="Replays",)
         if replay!="back":
             with open(replay) as loadfile:
