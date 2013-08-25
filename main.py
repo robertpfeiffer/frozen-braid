@@ -1,22 +1,45 @@
 import pygame
 import copy
 import random
+import webbrowser
+import pickle
+import glob
+import datetime
 
 pygame.init()
 
-screen_mode=(640,480)
-screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF)
+zoom=1
+fullscreen=False
+for x,y in pygame.display.list_modes():
+    while 640*(zoom+1)<x and 480*(zoom+1)<y:
+        zoom+=1
 
+screen_mode=(640*zoom,480*zoom)
+if fullscreen:
+    screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF|pygame.FULLSCREEN)
+else:
+    screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF)
+
+screen_real=screen
+
+if zoom>1:
+    screen=pygame.Surface((640,480)).convert()
+
+jump=pygame.mixer.Sound("jump.wav")
 pew=pygame.mixer.Sound("pew.wav")
 bang=pygame.mixer.Sound("bang.wav")
 boom=pygame.mixer.Sound("boom.wav")
 hurt=pygame.mixer.Sound("hurt.wav")
 
+pygame.mixer.music.load(random.choice(glob.glob("*ogg")))
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1, 0.0)
+
 clock = pygame.time.Clock() # create clock object
 
 def intro(filename):
     logo=pygame.transform.scale(pygame.image.load(filename).convert_alpha(),screen_mode)
-    screen.blit(logo, (0,0))
+    screen_real.blit(logo, (0,0))
     pygame.display.flip()
 
     for i in range(3*30):
@@ -26,15 +49,14 @@ def intro(filename):
         mouse = pygame.mouse.get_pressed()
         if keys[pygame.K_SPACE] or mouse[0]:
             break
-        screen.fill([0,0,0])
-        screen.blit(logo, (0,0))
+        screen_real.blit(logo, (0,0))
         pygame.display.flip()
 
 intro("logo.png")
 
 font0=pygame.font.Font("orbitron-black.ttf", 18)
 font=pygame.font.Font("orbitron-black.ttf", 36)
-font_win=pygame.font.Font("Ostrich Black.ttf", 200)
+font_win=pygame.font.Font("Ostrich Black.ttf", 160)
 
 FPS=30
 SECONDS=10
@@ -77,37 +99,41 @@ class Bullet(object):
 class Rocket(Bullet):
     pass
 
-hud_help=[font0.render(a,1,(200,200,200,200)) for a in
-          ["The battle will last TEN SECONDS",
+help_text=["The battle will last TEN SECONDS",
            "Take as long as you want to plan",
            "You can move enemy units to test your strategy",
-           "",
+           " ",
            "[SHIFT] rewinds time",
            "[SPACE] stops time",
-           "",
+           " ",
            "Only when time is up",
            " [N] selects next unit",
            " [RETURN] ends your move (give PC to other player)",
-           "",
+           " ",
            "[W][A][S][D] and arrows move units",
            "[X] or [E] shoots",
            "Units have a machine gun, a shotgun or rockets",
            "Rocket Guy aims with the mouse, but has only 3 shots",
-           "",
+           " ",
            "1. Red makes his move while green looks away",
            "2. Green makes his move while red has a total poker face",
            "3. Both strategies are played against each other",
-           "4. The player with more units after TEN SECONDS wins"]]
+           "4. The player with more units after TEN SECONDS wins"]
+
+hud_help=[font0.render(a,1,(200,200,200,200)) for a in
+          help_text]
 
 hud_grey=screen.copy().convert_alpha()
 hud_grey.fill((50,50,50,180))
-hud_hint=font0.render("press [H] for help and [SHIFT] to rewind",1,(200,200,200,200))
+hud_hint=font0.render("press [H] for help and [SHIFT] to rewind or [L] to leave",1,(200,200,200,150))
 
-global mainloop
 mainloop=True
+write_replay=True
 
-def rungame():
+def rungame(replay=None):
  global mainloop
+ global write_replay
+ global zoom
 
  #CREATE STUFF
  current_unit=0
@@ -129,6 +155,13 @@ def rungame():
         obstacles.append(pygame.Rect(i*100+random.randint(0,100), 100+j*60+random.randint(0,80), 40, 10))
 
  gameloop=True
+ in_replay=False
+
+ if replay:
+     committed,obstacles=replay
+     event_log=committed
+     player_index=2
+     in_replay=True
 
  while gameloop and mainloop:
     clock.tick(FPS)
@@ -138,6 +171,10 @@ def rungame():
     for event in events:
         if event.type == pygame.QUIT:
             mainloop=False
+            return
+        elif event.type == pygame.KEYDOWN and event.key==pygame.K_l:
+            return
+
     screen.fill((10,10,50))
     direction=""
 
@@ -148,13 +185,12 @@ def rungame():
         for event in events:
             if event.type == pygame.KEYDOWN and event.key==pygame.K_n:
                 current_unit=(current_unit+1)%len(units)
-            if event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index<2:
+            elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index<2:
                 #commit current player's move
                 for unit_idx in range(len(units)):
                     unit=units[unit_idx]
                     for t in range(FPS*SECONDS):
                         if unit.color==player_colors[player_index]:
-
                             committed[t][unit_idx]=event_log[t][unit_idx]
                 current_unit=0
                 units,bullets=state_log[0]
@@ -165,7 +201,11 @@ def rungame():
                 player_index+=1
                 if player_index==2:
                     event_log=committed
-            if event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index==2:
+            elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and player_index==2:
+                if write_replay and not in_replay:
+                    ts=datetime.datetime.now().isoformat()
+                    with open(ts+".replay",'w') as dumpfile:
+                        pickle.dump((committed,obstacles), dumpfile)
                 gameloop=False
 
     elif (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]):
@@ -200,7 +240,8 @@ def rungame():
 
             for event in events:
                 if event.type == pygame.KEYDOWN and (event.key==pygame.K_x or event.key==pygame.K_e):
-                    current_events.append(("shoot",pygame.mouse.get_pos()))
+                    px,py=pygame.mouse.get_pos()
+                    current_events.append(("shoot",(px/zoom,py/zoom)))
             if (keys[pygame.K_RIGHT] or keys[pygame.K_d]):
                 if  unit.look==-1:
                     current_events.append(("turn",None))
@@ -237,9 +278,9 @@ def rungame():
             unit.pos=x,y
 
             if unit.health>0:
+                unit.anim="idle"
                 for an_event in event_log[time][unit_idx]:
                     e,param=an_event
-                    unit.anim="idle"
                     if e=="shoot":
                         x,y=unit.pos
                         if unit.weapon=="rockets":
@@ -284,6 +325,7 @@ def rungame():
                         if not collide:
                             unit.pos=x+unit.move_speed,y
                     elif e=="jump" and unit.resting:
+                        jump.play()
                         unit.anim="idle"
                         unit.downspeed=-5
             else:
@@ -318,11 +360,9 @@ def rungame():
                         u.health-=100
 
         bullets=[b for b in bullets if not b.dead]
-
         time+=1
 
     # RENDERING
-
     for obstacle in obstacles:
         pygame.draw.rect(screen, (40,40,110), obstacle, 0)
         pygame.draw.rect(screen, (50,50,100), obstacle, 2)
@@ -346,8 +386,7 @@ def rungame():
             if unit==units[current_unit]:
                 w=font0.render(w_str, 1, (255,255,255))
             else:
-                w=font0.render(w_str, 1, [(n+100)/2 for n in player_colors[player_index]])
-
+                w=font0.render(w_str, 1, [(n+100)/2 for n in player_colors[unit.player]])
             screen.blit(w,(x-r,y-r-20))
 
 
@@ -390,53 +429,115 @@ def rungame():
             win="Green Wins"
         else:
             win="Draw"
+        screen.blit(hud_grey,(0,0))
         hud_win=font_win.render(win, 1, (255,255,255))
         screen.blit(hud_win,(10,100))
+        hud_win2=font.render("Press [RETURN] to leave", 1, (255,255,255))
+        screen.blit(hud_win2,(10,300))
 
-
+    if zoom>1:
+        pygame.transform.scale(screen, screen_mode, screen_real)
     pygame.display.flip()
 
 
-option=0
-options=["2 player game", "options", "website", "help", "quit"]
+def menu(options,fnt=36,row=50, heading="Menu", h1=45):
+    global mainloop
+    option=0
+    font=pygame.font.Font("orbitron-black.ttf", fnt)
+    h1font=pygame.font.Font("orbitron-black.ttf", h1)
+    time=0
 
-while mainloop:
-    clock.tick(FPS)
-    events = pygame.event.get()
-    keys = pygame.key.get_pressed()
+    while mainloop:
+     clock.tick(FPS)
+     events = pygame.event.get()
+     keys = pygame.key.get_pressed()
+     screen.fill((50,50,80))
 
-    screen.fill((10,10,50))
-    for i in range(len(options)):
+     screen.blit(h1font.render(heading,1,(255,255,255)),(50,50))
+
+     if heading=="Options":
+         time+=1
+         if time==1200:
+             time=0
+         for i in (0,1):
+             s=spritesheets[i]
+             anim=s.subsurface(pygame.Rect(20*((time/2)%12),0, 20,20))
+             screen.blit(anim,(500+40*i,50))
+
+     top=150
+     top1=top
+     bottom_marg=400
+
+     d_overlap=top+option*row-bottom_marg
+     if d_overlap>0:
+         top-=d_overlap
+
+     for i in range(len(options)):
         if option==i:
             pad=4
-            top=150
-            row=50
-            fnt=36
             marg=30
             pygame.draw.rect(screen,(150,0,0),pygame.Rect(0,top-pad+i*row,640,fnt+2*pad))
-        screen.blit(font.render(options[i],1,(255,255,255)),(marg,top+i*row))
+        if top+i*row>=top1:
+            screen.blit(font.render(options[i],1,(255,255,255)),(marg,top+i*row))
 
-    for event in events:
+     for event in events:
         if event.type == pygame.QUIT:
             mainloop=False
+            return
         elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN:
-            chosen=options[option]
-            if chosen=="2 player game":
-                rungame()
-            elif chosen=="help":
-                pass
-            elif chosen=="website":
-                pass
-            elif chosen=="options":
-                pass
-            elif chosen=="quit":
-                mainloop=False
-                break
-        elif event.type == pygame.KEYDOWN and event.key==pygame.K_DOWN:
-            if option<len(options):
-                option+=1
+            return options[option]
         elif event.type == pygame.KEYDOWN and event.key==pygame.K_UP:
             if option>0:
                 option-=1
+                if options[option][0]==" " and option>0:
+                    option-=1
+        elif event.type == pygame.KEYDOWN and event.key==pygame.K_DOWN:
+            if option<len(options)-1:
+                option+=1
+                if options[option][0]==" " and option<len(options)-1:
+                    option+=1
+     if zoom>1:
+         pygame.transform.scale(screen, screen_mode, screen_real)
+     pygame.display.flip()
 
-    pygame.display.flip()
+
+options=["2 player game", "Help", "Replays", "Options", "Website", "Quit"]
+
+while mainloop:
+    chosen=menu(options,heading="Frozen Braid",h1=60)
+    if chosen=="2 player game":
+        rungame()
+    elif chosen=="Help":
+        menu(help_text,18,20,heading="Help")
+    elif chosen=="Website":
+        pass
+    elif chosen=="Options":
+        option =""
+        while option!="back" and mainloop:
+         option=menu(["standard red and green sprites", "colorblind mode",
+                     " ", "save replays", "do not save replays",
+                     " ", "music on", "music off",
+                     " ", "back"],20,25,heading="Options")
+         if option=="standard red and green sprites":
+            spritesheets[1]=pygame.image.load("green.png").convert_alpha()
+         elif option=="colorblind mode":
+            spritesheets[1]=pygame.image.load("colorblind-green.png").convert_alpha()
+         elif option=="save replays":
+            write_replay=True
+         elif option=="do not save replays":
+            write_replay=False
+         elif option=="music on":
+             pygame.mixer.music.play()
+         elif option=="music off":
+             pygame.mixer.music.stop()
+    elif chosen=="Replays":
+        replays=glob.glob("*.replay")
+        replay=menu(replays+["back"],20,25,heading="Replays",)
+        if replay!="back":
+            with open(replay) as loadfile:
+                replay_obj=pickle.load(loadfile)
+            rungame(replay_obj)
+
+    elif chosen=="Quit":
+        mainloop=False
+        break
