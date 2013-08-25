@@ -502,7 +502,7 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45, top=150):
     if fnt<30:
         font=pygame.font.Font("Ubuntu-R.ttf", fnt*zoom)
     h1font=pygame.font.Font("orbitron-black.ttf", h1*zoom)
-    subfont=pygame.font.Font("Orbitron Medium.ttf", (h1*zoom)/5)
+    subfont=pygame.font.Font("Orbitron Medium.ttf", (h1*zoom)/3)
 
     top0=top
     time=0
@@ -534,7 +534,7 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45, top=150):
             pygame.transform.scale(screen, screen_mode, screen_real)
 
         screen_real.blit(h1font.render(heading,1,(255,255,255)),(50*zoom,50*zoom))
-        screen_real.blit(font0.render(subtitle,1,(255,255,255)),(90*zoom,110*zoom))
+        screen_real.blit(subfont.render(subtitle,1,(255,255,255)),(90*zoom,110*zoom))
 
         top=top0
         bottom_marg=400
