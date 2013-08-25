@@ -125,10 +125,10 @@ help_text=["The battle will last TEN SECONDS",
            "A typical Move goes like this",
            " - Control a unit until 10 seconds are over",
            " - Press N or M to select another unit",
-           " - Rewind time tp start",
+           " - Rewind time to start",
            " - Repeat for all friendly and enemy units",
            " - Revise your strategy and repeat the above",
-           " - Play until time us up",
+           " - Play until time is up",
            " - Press Return to submit your move",]
 
 hud_help=[fonth.render(a,1,(200,200,200,200)) for a in
