@@ -55,7 +55,7 @@ def intro(filename):
 intro("logo.png")
 
 font0=pygame.font.Font("Orbitron Medium.ttf", 18)
-fonth=pygame.font.Font("Orbitron Medium.ttf", 18*zoom)
+fonth=pygame.font.Font("Ubuntu-R.ttf", 18*zoom)
 font=pygame.font.Font("orbitron-black.ttf", 36)
 font_win=pygame.font.Font("Ostrich Black.ttf", 150)
 
@@ -119,7 +119,17 @@ help_text=["The battle will last TEN SECONDS",
            "1. Red makes his move while green looks away",
            "2. Green makes his move while red has a total poker face",
            "3. Both strategies are played against each other",
-           "4. The player with more units after TEN SECONDS wins"]
+           "4. The player with more units after TEN SECONDS wins",
+           " ",
+           " ",
+           "A typical Move goes like this",
+           " - Control a unit until 10 seconds are over",
+           " - Press N or M to select another unit",
+           " - Rewind time tp start",
+           " - Repeat for all friendly and enemy units",
+           " - Revise your strategy and repeat the above",
+           " - Play until time us up",
+           " - Press Return to submit your move",]
 
 hud_help=[fonth.render(a,1,(200,200,200,200)) for a in
           help_text]
@@ -134,11 +144,10 @@ hud_hint5=fonth.render("select other unit [N]/[M]",1,(200,200,200,150))
 
 mainloop=True
 write_replay=True
+hints=True
 
 def rungame(replay=None):
     global mainloop
-    global write_replay
-    global zoom
 
     #CREATE STUFF
     current_unit=0
@@ -154,6 +163,7 @@ def rungame(replay=None):
     state_log = [None for t in range(FPS*SECONDS)]
     event_log = [[[] for u in units] for t in range(FPS*SECONDS)]
     committed=[[[] for u in units] for t in range(FPS*SECONDS)]
+    explosions=[]
 
     for i in range(6):
         for j in range(6):
@@ -367,8 +377,10 @@ def rungame(replay=None):
                     b.dead=True
 
                 if type(b)==Rocket and b.dead:
-                    pygame.draw.circle(screen, (100,100,100), (int(x),int(y)), 40)
+                    pygame.draw.circle(screen, (255,255,255,200), (int(x),int(y)), 40)
                     boom.play()
+                    for i in range(20):
+                        explosions.append((int(x),int(y)))
                     for u in units:
                         ux,uy=u.pos
                         if (ux-x)**2+(uy-y)**2<40**2:
@@ -381,6 +393,10 @@ def rungame(replay=None):
         for obstacle in obstacles:
             pygame.draw.rect(screen, (40,40,110), obstacle, 0)
             pygame.draw.rect(screen, (50,50,100), obstacle, 2)
+
+        if explosions:
+            xpos=explosions.pop()
+            pygame.draw.circle(screen, (200,200,200), xpos, 40)
 
         for unit in units:
             x,y=unit.pos
@@ -451,7 +467,7 @@ def rungame(replay=None):
         if keys[pygame.K_h]:
             for i in range(len(hud_help)):
                 screen_real.blit(hud_help[i],(10*zoom,(50+i*20)*zoom))
-        elif not in_replay and player_index!=2:
+        elif not in_replay and player_index!=2 and hints:
             if time==FPS*SECONDS or stop_state:
                 screen_real.blit(hud_hint,(10*zoom,440*zoom))
 
@@ -479,11 +495,16 @@ def rungame(replay=None):
         pygame.display.flip()
 
 
-def menu(options,fnt=36,row=50, heading="Menu", h1=45):
+def menu(options,fnt=36,row=50, heading="Menu", h1=45, top=150):
     global mainloop
     option=0
-    font=pygame.font.Font("orbitron-black.ttf", fnt)
-    h1font=pygame.font.Font("orbitron-black.ttf", h1)
+    font=pygame.font.Font("orbitron-black.ttf", fnt*zoom)
+    if fnt<30:
+        font=pygame.font.Font("Ubuntu-R.ttf", fnt*zoom)
+    h1font=pygame.font.Font("orbitron-black.ttf", h1*zoom)
+    subfont=pygame.font.Font("Orbitron Medium.ttf", (h1*zoom)/5)
+
+    top0=top
     time=0
     subtitle=""
     if heading=="Frozen Braid":
@@ -492,37 +513,42 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
                                 "(c) 2013 Robert Pfeiffer",
                                 "red player goes first",
                                 "blame your loss on the randomly generated map",
-                                "tell your friends - there is no single player mode"])
+                                "10 seconds of strategery",
+                                "tell your friends - we have multiplayer"])
     while mainloop:
         clock.tick(FPS)
         events = pygame.event.get()
         keys = pygame.key.get_pressed()
-        screen.fill((50,50,80))
-
-        screen.blit(h1font.render(heading,1,(255,255,255)),(50,50))
-        screen.blit(font0.render(subtitle,1,(255,255,255)),(90,110))
 
         time+=1
         if time==1200:
             time=0
+
+        screen.fill((50,50,80))
         for i in (0,1):
             s=spritesheets[i]
             anim=s.subsurface(pygame.Rect(20*((time/2)%12),0, 20,20))
             screen.blit(anim,(500+40*i,50))
 
-        top=150
-        top1=top
+        if zoom>1:
+            pygame.transform.scale(screen, screen_mode, screen_real)
+
+        screen_real.blit(h1font.render(heading,1,(255,255,255)),(50*zoom,50*zoom))
+        screen_real.blit(font0.render(subtitle,1,(255,255,255)),(90*zoom,110*zoom))
+
+        top=top0
         bottom_marg=400
 
         d_overlap=top+option*row-bottom_marg
         if d_overlap>0:
             top-=d_overlap
+
         pad=4
         marg=30
-        pygame.draw.rect(screen,(150,0,0),pygame.Rect(0,top-pad+option*row,640,fnt+2*pad))
+        pygame.draw.rect(screen_real,(150,0,0),pygame.Rect(0*zoom,(top-pad+option*row)*zoom,640*zoom,(fnt+2*pad)*zoom))
         for i in range(len(options)):
-            if top+i*row>=top1:
-                screen.blit(font.render(options[i],1,(255,255,255)),(marg,top+i*row))
+            if top+i*row>=top0:
+                screen_real.blit(font.render(options[i],1,(255,255,255)),(marg*zoom,(top+i*row)*zoom))
 
         for event in events:
             if event.type == pygame.QUIT:
@@ -542,8 +568,7 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45):
                     option+=1
                     if options[option][0]==" " and option<len(options)-1:
                         option+=1
-        if zoom>1:
-            pygame.transform.scale(screen, screen_mode, screen_real)
+
         pygame.display.flip()
 
 
@@ -563,7 +588,8 @@ while mainloop:
             option=menu(["standard red and green sprites", "colorblind mode",
                         " ", "save replays", "do not save replays",
                         " ", "music on", "music off",
-                        " ", "back"],20,25,heading="Options")
+                        " ", "hints on (show suggested buttons)", "hints off",
+                        " ", "back"],20,25,heading="Options", top=120)
             if option=="standard red and green sprites":
                 spritesheets[1]=pygame.image.load("green.png").convert_alpha()
             elif option=="colorblind mode":
@@ -576,6 +602,10 @@ while mainloop:
                 pygame.mixer.music.play()
             elif option=="music off":
                 pygame.mixer.music.stop()
+            elif option=="hints on (show suggested buttons)":
+                hints=True
+            elif option=="hints off":
+                hints=False
     elif chosen=="Replays":
         replays=glob.glob("*.replay")
         replays.sort()
