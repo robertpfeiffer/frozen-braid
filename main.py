@@ -509,7 +509,7 @@ while mainloop:
     elif chosen=="Help":
         menu(help_text,18,20,heading="Help")
     elif chosen=="Website":
-        pass
+        webbrowser.open("http://www.ludumdare.com/compo/ludum-dare-27/?action=preview&uid=7968")
     elif chosen=="Options":
         option =""
         while option!="back" and mainloop:
