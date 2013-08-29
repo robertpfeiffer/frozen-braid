@@ -28,7 +28,7 @@ def setup_screen():
 
     screen_real=screen
 
-    if zoom>1 and not fullscreen:
+    if zoom>1:
         screen=pygame.Surface((640,480)).convert()
 
 setup_screen()
