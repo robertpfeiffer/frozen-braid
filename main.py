@@ -148,7 +148,7 @@ write_replay=True
 hints=True
 
 def create_map():
-    obstacles=[pygame.Rect(310, 50, 20, 100),pygame.Rect(0, 0, 20, 480),pygame.Rect(620, 0, 20, 480),pygame.Rect(0, 460, 640, 20)]	
+    obstacles=[pygame.Rect(310, 50, 20, 100),pygame.Rect(0, 0, 20, 480),pygame.Rect(620, 0, 20, 480),pygame.Rect(0, 460, 640, 20)]
 
     for i in range(6):
         for j in range(6):
@@ -193,7 +193,7 @@ def map_get_moves(mapname):
     return red_moves,green_moves
 
 def rungame(replay=None, online=False, map=None, player_index=0, replay_filename=None):
-    
+
     #CREATE STUFF
     current_unit=0
     time=0
@@ -554,18 +554,18 @@ def textinput(prompt, fnt=36):
 
     pad=4
     marg=30
-    	
+
     while True:
         clock.tick(FPS)
         events = pygame.event.get()
         keys = pygame.key.get_pressed()
-        
+
         screen_real.fill((50,50,80))
-        
+
         screen_real.blit(h1font.render(prompt,1,(255,255,255)),(50*zoom,50*zoom))
 
         pygame.draw.rect(screen_real,(150,0,0),pygame.Rect(0*zoom,(150-pad)*zoom,640*zoom,(fnt+2*pad)*zoom))
-	screen_real.blit(font.render(">"+string,1,(255,255,255)),(marg*zoom,150*zoom))
+        screen_real.blit(font.render(">"+string,1,(255,255,255)),(marg*zoom,150*zoom))
 
 
         for event in events:
@@ -590,18 +590,18 @@ def event_input(prompt, fnt=36):
 
     pad=4
     marg=30
-    	
+
     while True:
         clock.tick(FPS)
         events = pygame.event.get()
         keys = pygame.key.get_pressed()
-        
+
         screen_real.fill((50,50,80))
-        
+
         screen_real.blit(h1font.render(prompt,1,(255,255,255)),(50*zoom,50*zoom))
 
         pygame.draw.rect(screen_real,(150,0,0),pygame.Rect(0*zoom,(150-pad)*zoom,640*zoom,(fnt+2*pad)*zoom))
-	screen_real.blit(font.render(">"+string,1,(255,255,255)),(marg*zoom,150*zoom))
+        screen_real.blit(font.render(">"+string,1,(255,255,255)),(marg*zoom,150*zoom))
 
 
         for event in events:
@@ -640,7 +640,7 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45, top=150,subtitle=""):
 
     top0=top
     time=0
-    
+
     if heading=="Frozen Braid":
         subtitle=random.choice(["2 players, 6 soldiers, 10 seconds - LD 27",
                                 "shotgun time travel tactics",
@@ -721,163 +721,163 @@ def playbymail():
     global playername
     action = "START"
     while action and action != "back":
-     if not playername:
-         playername=textinput("Player Name")
-         if playername=="":
-             menu(["Player name can not be empty"],heading="Player Name")
-             continue
-         elif not playername:
-             return
-     action=menu(["Create Map", "Make Move", "Game Outcome", "Map Status", "Change Name", "back"], heading="Play by Mail", subtitle="playing as "+playername)
+        if not playername:
+            playername=textinput("Player Name")
+            if playername=="":
+                menu(["Player name can not be empty"],heading="Player Name")
+                continue
+            elif not playername:
+                return
+        action=menu(["Create Map", "Make Move", "Game Outcome", "Map Status", "Change Name", "back"], heading="Play by Mail", subtitle="playing as "+playername)
 
-     if action=="Create Map":
-        mapname=textinput("Map Name")
-        if mapname=="":
-            menu(["Map name can not be empty"],heading="Map Name")
-            continue
-        elif not mapname:
-            continue
-        mapcontent=create_map()
-        write_map_file(mapcontent,mapname)
-     elif action=="Change Name":
-         newname=textinput("Player Name")
-         if newname:
-             playername=newname
-     elif action=="Make Move":
-        mapnames=get_map_names()
-        if not mapnames:
-            menu(["No Maps Found"],heading="Select Map")
-            continue
-        mapname=menu(mapnames,heading="Select Map")
-        if not mapname:continue
-        selected_color=menu(["red","green"],heading="Select Color")
-        if not selected_color:continue
-        with open(mapname+".map.json") as loadfile:
-            map_s=loadfile.read()
-        mapcontent=json.loads(map_s)
-        mapcontent=[pygame.Rect(a,b) for (a,b) in mapcontent]
-        pl_index={"red":0,"green":1}[selected_color]
-        move=rungame(online=True,map=mapcontent,player_index=pl_index)
-        if not move:
-            continue
-        write_move_file(move,mapname,playername,selected_color)
-     elif action=="Map Status":
-        mapnames=get_map_names()
-        if not mapnames:
-            menu(["No Maps Found"],heading="Select Map")
-            continue
-        map_desc=[]
-        for mapname in mapnames:
-            red_moves,green_moves=map_get_moves(mapname)
-            map_desc.append(mapname+": "
-                            +str(len(red_moves))+" red,"
-                            +str(len(green_moves))+" green")
-        menu(map_desc,heading="Map List")
-     elif action=="Game Outcome":
-        mapnames=get_map_names()
-        mapnames=[m for m in mapnames if map_is_played(m)]
-        if not mapnames:
-            menu(["No played maps found"],heading="Select Map")
-            continue
-        else:
+        if action=="Create Map":
+            mapname=textinput("Map Name")
+            if mapname=="":
+                menu(["Map name can not be empty"],heading="Map Name")
+                continue
+            elif not mapname:
+                continue
+            mapcontent=create_map()
+            write_map_file(mapcontent,mapname)
+        elif action=="Change Name":
+            newname=textinput("Player Name")
+            if newname:
+                playername=newname
+        elif action=="Make Move":
+            mapnames=get_map_names()
+            if not mapnames:
+                menu(["No Maps Found"],heading="Select Map")
+                continue
             mapname=menu(mapnames,heading="Select Map")
-        if not mapname:continue
-        red_moves,green_moves=map_get_moves(mapname)
-        if not red_moves or not green_moves:
-            menu(["No Matching Moves Found"],heading="Select Moves")
-            continue
-        if len(red_moves)==1:
-            selected_red_move=red_moves[0]
-        else:
-            selected_red_move=menu(red_moves,heading="Select Red Move")
-            if not selected_red_move: continue
-        if len(green_moves)==1:
-            selected_green_move=green_moves[0]
-        else:
-            selected_green_move=menu(green_moves,heading="Select Green Move")
-            if not selected_green_move:continue
-        with open(selected_red_move) as loadfile:
-            red_s=loadfile.read()
-        move_red=json.loads(red_s)
-        committed_red=move_red["committed"]
-        with open(selected_green_move) as loadfile:
-            green_s=loadfile.read()
-        move_green=json.loads(green_s)
-        committed_green=move_green["committed"]
-        committed=[[[] for u in range(6)] for t in range(FPS*SECONDS)]
-        for t in range(FPS*SECONDS):
-            for redunit in [0,1,2]:
-                committed[t][redunit]=committed_red[t][redunit]
-            for greenunit in [3,4,5]:
-                committed[t][greenunit]=committed_green[t][greenunit]
-        with open(mapname+".map.json") as loadfile:
-            map_s=loadfile.read()
-        mapcontent=json.loads(map_s)
-        mapcontent=[pygame.Rect(a,b) for (a,b) in mapcontent]
-        replay_filename=".".join([mapname,move_green["name"],move_red["name"]])
-        rungame((committed,mapcontent),replay_filename=replay_filename)
+            if not mapname:continue
+            selected_color=menu(["red","green"],heading="Select Color")
+            if not selected_color:continue
+            with open(mapname+".map.json") as loadfile:
+                map_s=loadfile.read()
+            mapcontent=json.loads(map_s)
+            mapcontent=[pygame.Rect(a,b) for (a,b) in mapcontent]
+            pl_index={"red":0,"green":1}[selected_color]
+            move=rungame(online=True,map=mapcontent,player_index=pl_index)
+            if not move:
+                continue
+            write_move_file(move,mapname,playername,selected_color)
+        elif action=="Map Status":
+            mapnames=get_map_names()
+            if not mapnames:
+                menu(["No Maps Found"],heading="Select Map")
+                continue
+            map_desc=[]
+            for mapname in mapnames:
+                red_moves,green_moves=map_get_moves(mapname)
+                map_desc.append(mapname+": "
+                                +str(len(red_moves))+" red,"
+                                +str(len(green_moves))+" green")
+            menu(map_desc,heading="Map List")
+        elif action=="Game Outcome":
+            mapnames=get_map_names()
+            mapnames=[m for m in mapnames if map_is_played(m)]
+            if not mapnames:
+                menu(["No played maps found"],heading="Select Map")
+                continue
+            else:
+                mapname=menu(mapnames,heading="Select Map")
+            if not mapname:continue
+            red_moves,green_moves=map_get_moves(mapname)
+            if not red_moves or not green_moves:
+                menu(["No Matching Moves Found"],heading="Select Moves")
+                continue
+            if len(red_moves)==1:
+                selected_red_move=red_moves[0]
+            else:
+                selected_red_move=menu(red_moves,heading="Select Red Move")
+                if not selected_red_move: continue
+            if len(green_moves)==1:
+                selected_green_move=green_moves[0]
+            else:
+                selected_green_move=menu(green_moves,heading="Select Green Move")
+                if not selected_green_move:continue
+            with open(selected_red_move) as loadfile:
+                red_s=loadfile.read()
+            move_red=json.loads(red_s)
+            committed_red=move_red["committed"]
+            with open(selected_green_move) as loadfile:
+                green_s=loadfile.read()
+            move_green=json.loads(green_s)
+            committed_green=move_green["committed"]
+            committed=[[[] for u in range(6)] for t in range(FPS*SECONDS)]
+            for t in range(FPS*SECONDS):
+                for redunit in [0,1,2]:
+                    committed[t][redunit]=committed_red[t][redunit]
+                for greenunit in [3,4,5]:
+                    committed[t][greenunit]=committed_green[t][greenunit]
+            with open(mapname+".map.json") as loadfile:
+                map_s=loadfile.read()
+            mapcontent=json.loads(map_s)
+            mapcontent=[pygame.Rect(a,b) for (a,b) in mapcontent]
+            replay_filename=".".join([mapname,move_green["name"],move_red["name"]])
+            rungame((committed,mapcontent),replay_filename=replay_filename)
 
 
 
 options=["Start Game", "Help", "Replays", "Options", "Website", "Quit"]
 
 def mainmenu():
- global write_replay
- global hints
- try:
-  while True:
-    chosen=menu(options,heading="Frozen Braid",h1=60)
-    if chosen=="Start Game":
-        gametype=menu(["Local Multiplayer", "Play by Mail", "back"], heading="Start Game")
-	if gametype=="Local Multiplayer":
-            rungame()
-        elif gametype=="Play by Mail":
-            playbymail()
-    elif chosen=="Help":
-        menu(help_text,18,20,heading="Help")
-    elif chosen=="Website":
-        webbrowser.open("http://www.ludumdare.com/compo/ludum-dare-27/?action=preview&uid=7968")
-    elif chosen=="Options":
-        option =""
-        while option!="back":
-            option=menu(["red and green sprites", "colorblind mode",
-                        " ", ("disable replays" if write_replay else "auto save replays"), 
-                        ("turn music off" if pygame.mixer.music.get_busy() else "turn music on"),
-                        ("turn hints off" if hints else "turn hints on (show suggested buttons)"),
-                        " ", "back"],30,35,heading="Options", top=120)
-            if option=="red and green sprites":
-                spritesheets[1]=pygame.image.load("green.png").convert_alpha()
-            elif option=="colorblind mode":
-                spritesheets[1]=pygame.image.load("colorblind-green.png").convert_alpha()
-            elif option=="auto save replays":
-                write_replay=True
-            elif option=="disable replays":
-                write_replay=False
-            elif option=="turn music on":
-                pygame.mixer.music.play()
-            elif option=="turn music off":
-                pygame.mixer.music.stop()
-            elif option=="turn hints on (show suggested buttons)":
-                hints=True
-            elif option=="turn hints off":
-                hints=False
-    elif chosen=="Replays":
-        replays=glob.glob("*.replay.json")
-        replays.sort()
-        replays=[strip_ext(r,".replay.json") for r in replays]
-        replay=menu(replays+["back"],heading="Replays",)
-        if replay!="back":
-            with open(replay+".replay.json") as loadfile:
-                #replay_obj=pickle.load(loadfile)
-                replay_s=loadfile.read()
-	        c,o=json.loads(replay_s)
-	        o=[pygame.Rect(a,b) for (a,b) in o]
-	        replay_obj=c,o
-            rungame(replay_obj)
+    global write_replay
+    global hints
+    try:
+        while True:
+            chosen=menu(options,heading="Frozen Braid",h1=60)
+            if chosen=="Start Game":
+                gametype=menu(["Local Multiplayer", "Play by Mail", "back"], heading="Start Game")
+                if gametype=="Local Multiplayer":
+                    rungame()
+                elif gametype=="Play by Mail":
+                    playbymail()
+            elif chosen=="Help":
+                menu(help_text,18,20,heading="Help")
+            elif chosen=="Website":
+                webbrowser.open("http://www.ludumdare.com/compo/ludum-dare-27/?action=preview&uid=7968")
+            elif chosen=="Options":
+                option =""
+                while option!="back":
+                    option=menu(["red and green sprites", "colorblind mode",
+                                " ", ("disable replays" if write_replay else "auto save replays"),
+                                ("turn music off" if pygame.mixer.music.get_busy() else "turn music on"),
+                                ("turn hints off" if hints else "turn hints on (show suggested buttons)"),
+                                " ", "back"],30,35,heading="Options", top=120)
+                    if option=="red and green sprites":
+                        spritesheets[1]=pygame.image.load("green.png").convert_alpha()
+                    elif option=="colorblind mode":
+                        spritesheets[1]=pygame.image.load("colorblind-green.png").convert_alpha()
+                    elif option=="auto save replays":
+                        write_replay=True
+                    elif option=="disable replays":
+                        write_replay=False
+                    elif option=="turn music on":
+                        pygame.mixer.music.play()
+                    elif option=="turn music off":
+                        pygame.mixer.music.stop()
+                    elif option=="turn hints on (show suggested buttons)":
+                        hints=True
+                    elif option=="turn hints off":
+                        hints=False
+            elif chosen=="Replays":
+                replays=glob.glob("*.replay.json")
+                replays.sort()
+                replays=[strip_ext(r,".replay.json") for r in replays]
+                replay=menu(replays+["back"],heading="Replays",)
+                if replay!="back":
+                    with open(replay+".replay.json") as loadfile:
+                        #replay_obj=pickle.load(loadfile)
+                        replay_s=loadfile.read()
+                        c,o=json.loads(replay_s)
+                        o=[pygame.Rect(a,b) for (a,b) in o]
+                        replay_obj=c,o
+                    rungame(replay_obj)
 
-    elif chosen=="Quit":
-        break
- except QuitClicked as e:
-     pass
+            elif chosen=="Quit":
+                break
+    except QuitClicked as e:
+        pass
 if __name__=="__main__":
     mainmenu()
