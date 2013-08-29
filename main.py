@@ -17,15 +17,21 @@ for x,y in pygame.display.list_modes():
         zoom+=1
 
 screen_mode=(640*zoom,480*zoom)
-if fullscreen:
-    screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF|pygame.FULLSCREEN)
-else:
-    screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF)
 
-screen_real=screen
+def setup_screen():
+    global screen
+    global screen_real
+    if fullscreen:
+        screen = pygame.display.set_mode((0,0),pygame.DOUBLEBUF|pygame.FULLSCREEN)
+    else:
+        screen = pygame.display.set_mode(screen_mode,pygame.DOUBLEBUF)
 
-if zoom>1:
-    screen=pygame.Surface((640,480)).convert()
+    screen_real=screen
+
+    if zoom>1 and not fullscreen:
+        screen=pygame.Surface((640,480)).convert()
+
+setup_screen()
 
 jump=pygame.mixer.Sound("jump.wav")
 pew=pygame.mixer.Sound("pew.wav")
@@ -824,6 +830,7 @@ options=["Start Game", "Help", "Replays", "Options", "Website", "Quit"]
 def mainmenu():
     global write_replay
     global hints
+    global fullscreen
     try:
         while True:
             chosen=menu(options,heading="Frozen Braid",h1=60)
@@ -841,10 +848,11 @@ def mainmenu():
                 option =""
                 while option!="back":
                     option=menu(["red and green sprites", "colorblind mode",
-                                " ", ("disable replays" if write_replay else "auto save replays"),
-                                ("turn music off" if pygame.mixer.music.get_busy() else "turn music on"),
-                                ("turn hints off" if hints else "turn hints on (show suggested buttons)"),
-                                " ", "back"],30,35,heading="Options", top=120)
+                                 " ", ("disable replays" if write_replay else "auto save replays"),
+                                 ("windowed" if fullscreen else "fullscreen"),
+                                 ("turn music off" if pygame.mixer.music.get_busy() else "turn music on"),
+                                 ("turn hints off" if hints else "turn hints on (show suggested buttons)"),
+                                 " ", "back"],30,35,heading="Options", top=120)
                     if option=="red and green sprites":
                         spritesheets[1]=pygame.image.load("green.png").convert_alpha()
                     elif option=="colorblind mode":
@@ -853,6 +861,12 @@ def mainmenu():
                         write_replay=True
                     elif option=="disable replays":
                         write_replay=False
+                    elif option=="fullscreen":
+                        fullscreen=True
+                        setup_screen()
+                    elif option=="windowed":
+                        fullscreen=False
+                        setup_screen()
                     elif option=="turn music on":
                         pygame.mixer.music.play()
                     elif option=="turn music off":
