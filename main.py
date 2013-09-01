@@ -499,7 +499,7 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
 
         # UI RENDERING
 
-        if direction!=">":
+        if direction!=">" and not in_replay:
             unit=units[current_unit]
             x,y=unit.pos
             pygame.draw.circle(screen, (100,100,100), (x,y), 15,2)
@@ -848,11 +848,12 @@ def playbymail():
                 green_s=loadfile.read()
             move_green=json.loads(green_s)
             committed_green=move_green["committed"]
-            committed=[[[] for u in range(6)] for t in range(FPS*SECONDS)]
+            num_units=6
+            committed=[[[] for u in range(num_units)] for t in range(FPS*SECONDS)]
             for t in range(FPS*SECONDS):
-                for redunit in range(0,len(units)/2):
+                for redunit in range(0,num_units/2):
                     committed[t][redunit]=committed_red[t][redunit]
-                for greenunit in range(len(units)/2,len(units)):
+                for greenunit in range(num_units/2,num_units):
                     committed[t][greenunit]=committed_green[t][greenunit]
             with open(mapname+".map.json") as loadfile:
                 map_s=loadfile.read()
