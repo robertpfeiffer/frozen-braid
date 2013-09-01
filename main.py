@@ -64,6 +64,7 @@ intro("logo.png")
 
 font0=pygame.font.Font("Orbitron Medium.ttf", 18)
 fonth=pygame.font.Font("Ubuntu-R.ttf", 18*zoom)
+fonth1=pygame.font.Font("Ubuntu-R.ttf", 20*zoom)
 font=pygame.font.Font("orbitron-black.ttf", 36)
 font_win=pygame.font.Font("Ostrich Black.ttf", 150)
 
@@ -108,47 +109,30 @@ class Bullet(object):
 class Rocket(Bullet):
     pass
 
-help_text=["The battle will last TEN SECONDS",
-           "Take as long as you want to plan",
-           "You can move enemy units to test your strategy",
+help_text=["Use [W][A][S][D] to move units, left click to shoot",
+           "Press [SHIFT] to rewind time, [SPACE] to pause",
+           "When paused, click the time bar to rewind",
            " ",
-           "[SHIFT] rewinds time, [SHIFT]+[S] rewinds faster",
-           "[SPACE] stops time",
-           " ",
-           "Only when time is up",
-           " [N]/[M] selects next/prev unit",
-           " [RETURN] ends your move (give PC to other player)",
-           " ",
-           "[W][A][S][D] move units",
-           "[X] or [E] or clicking shoots",
            "Units have a machine gun, a shotgun or rockets",
            "Rocket Guy aims with the mouse, but has only 3 shots",
            " ",
-           "1. Red makes his move while green looks away",
-           "2. Green makes his move while red has a total poker face",
-           "3. Both strategies are played against each other",
-           "4. The player with more units after TEN SECONDS wins",
+           "Only when time is up",
+           " right click to select units",
+           " press [RETURN] to end your move (give PC to other player)",
            " ",
-           " ",
-           "A typical Move goes like this",
-           " - Control a unit until 10 seconds are over",
-           " - Press N or M to select another unit",
-           " - Rewind time to start",
-           " - Repeat for all friendly and enemy units",
-           " - Revise your strategy and repeat the above",
-           " - Play until time is up",
-           " - Press Return to submit your move",]
+           "Take as long as you want to plan",
+           "Move enemy units to test your strategy"]
 
-hud_help=[fonth.render(a,1,(200,200,200,200)) for a in
+hud_help=[fonth1.render(a,1,(200,200,200,200)) for a in
           help_text]
 
 hud_grey=screen.copy().convert_alpha()
 hud_grey.fill((50,50,50,190))
-hud_hint=fonth.render("press [H] for help and [SHIFT] to rewind or [ESC] to leave",1,(200,200,200,150))
-hud_hint2=fonth.render("press [RETURN] to confirm your move when you are ready",1,(200,200,200,150))
-hud_hint3=fonth.render("hold [SHIFT][LEFT] fast rewind - [SHIFT][RIGHT] replay",1,(200,200,200,150))
-hud_hint4=fonth.render("move with [W][A][S][D] - shoot with [X] or mouse",1,(200,200,200,150))
-hud_hint5=fonth.render("select other unit [N]/[M]",1,(200,200,200,150))
+hud_hint=fonth.render("[H]: help - [SHIFT]: rewind or [ESC]: leaave",1,(200,200,200,150))
+hud_hint2=fonth.render("[RETURN]: confirm move",1,(200,200,200,150))
+hud_hint4=fonth.render("[W][A][S][D]: move - left click: shoot - [SPACE]: pause - [SHIFT]: rewind",1,(200,200,200,150))
+hud_hint5=fonth.render("right click: select unit",1,(200,200,200,150))
+hud_hint6=fonth.render("[SPACE]: unpause - [SHIFT]: rewind - left click: jump to time",1,(200,200,200,150))
 
 write_replay=True
 hints=True
@@ -198,7 +182,7 @@ def map_get_moves(mapname):
     green_moves.sort()
     return red_moves,green_moves
 
-def rungame(replay=None, online=False, map=None, player_index=0, replay_filename=None):
+def rungame(replay=None, online=False, map=None, player_index=0, replay_filename=None, names=None):
 
     #CREATE STUFF
     current_unit=0
@@ -210,7 +194,7 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
           Unit(540,100,1),Unit(530,100,1,"shotgun"),Unit(520,100,1,"rockets")]
     bullets=[]
 
-    state_log = [None for t in range(FPS*SECONDS)]
+    state_log = [None for t in range(FPS*SECONDS+1)]
     event_log = [[[] for u in units] for t in range(FPS*SECONDS)]
     committed=[[[] for u in units] for t in range(FPS*SECONDS)]
     explosions=[]
@@ -245,16 +229,47 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
 
         screen.fill((10,10,50))
         direction=""
-
-        if (stop_state and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT])):
+        
+        if (stop_state or time==FPS*SECONDS) and pygame.mouse.get_pressed()[0]:
             direction="||"
+
+            mx,my=pygame.mouse.get_pos()
+            mx/=zoom
+            my/=zoom
+
+            if my>460:
+                stop_state=True
+                mouse_time=(mx-20)/2
+                if mouse_time<0:
+                    time=0
+                elif mouse_time<maxtime:
+                    time=mouse_time
+                else:
+                    time=maxtime
+                units,bullets=state_log[time]
         elif not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]) and time==FPS*SECONDS:
+            bak_units=[copy.copy(u) for u in units]
+            bak_bullets=[copy.copy(b) for b in bullets]
+            state_log[time]=(bak_units,bak_bullets)
+            maxtime=FPS*SECONDS
             direction="||"
             stop_state=False
+            if pygame.mouse.get_pressed()[2]:
+                mx,my=pygame.mouse.get_pos()
+                mx/=zoom
+                my/=zoom
+                max_distance=10000000
+                for unit_idx in range(len(units)):
+                    unit=units[unit_idx]
+                    ux,uy=unit.pos
+                    distance=(ux-mx)**2+(uy-my)**2
+                    if distance<(unit.radius+15)**2 and distance<max_distance:
+                        current_unit=unit_idx
+                        max_distance=distance
             for event in events:
                 if event.type == pygame.KEYDOWN and event.key==pygame.K_n:
                     current_unit=(current_unit+1)%len(units)
-                if event.type == pygame.KEYDOWN and event.key==pygame.K_m:
+                elif event.type == pygame.KEYDOWN and event.key==pygame.K_m:
                     current_unit=(current_unit-1)%len(units)
                 elif event.type == pygame.KEYDOWN and event.key==pygame.K_RETURN and online and player_index<2:
                     for unit_idx in range(len(units)):
@@ -272,7 +287,7 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
                                 committed[t][unit_idx]=event_log[t][unit_idx]
                     current_unit=0
                     units,bullets=state_log[0]
-                    state_log = [None for t in range(FPS*SECONDS)]
+                    state_log = [None for t in range(FPS*SECONDS+1)]
                     event_log = [[[] for u in units] for t in range(FPS*SECONDS)]
                     time=0
                     maxtime=0
@@ -287,8 +302,7 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
                     elif write_replay and not in_replay and not online:
                         write_replay_file(committed,obstacles)
                     gameloop=False
-
-        elif (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]):
+        elif keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
             stop_state=False
             if keys[pygame.K_RIGHT]:
                 time+=1
@@ -308,6 +322,8 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
                 time=maxtime
 
             units,bullets=state_log[time]
+        elif stop_state:
+            direction="||"
 
         elif time<FPS*SECONDS:
             direction=">"
@@ -488,6 +504,11 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
             x,y=unit.pos
             pygame.draw.circle(screen, (100,100,100), (x,y), 15,2)
 
+        pygame.draw.rect(screen,(50,50,50),pygame.Rect(20,465,FPS*SECONDS*2,10))
+        pygame.draw.rect(screen,(100,100,100),pygame.Rect(20,465,maxtime*2,10))
+        pygame.draw.rect(screen,(150,150,150),pygame.Rect(20,465,time*2,10))
+
+
         hud=font.render(str(SECONDS-time/FPS)+" seconds "+["red planning","green planning", "OUTCOME"][player_index], 1, player_colors[player_index])
         hud2=font.render(direction, 1, (200,200,255))
 
@@ -516,6 +537,10 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
             screen.blit(hud_win,(10,100))
             hud_win2=font.render("Press [RETURN] to leave", 1, (255,255,255))
             screen.blit(hud_win2,(10,300))
+            if names:
+                nr,ng=names
+                hud_win3=font.render("red: "+nr+"; green: "+ng, 1, (255,255,255))
+                screen.blit(hud_win3,(10,380))
 
         if zoom>1:
             pygame.transform.scale(screen, screen_mode, screen_real)
@@ -524,8 +549,10 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
             for i in range(len(hud_help)):
                 screen_real.blit(hud_help[i],(10*zoom,(50+i*20)*zoom))
         elif not in_replay and player_index!=2 and hints:
-            if time==FPS*SECONDS or stop_state:
+            if time==FPS*SECONDS:
                 screen_real.blit(hud_hint,(10*zoom,440*zoom))
+            elif stop_state:
+                screen_real.blit(hud_hint6,(10*zoom,440*zoom))
 
             if time==FPS*SECONDS:
                 commanded_units=0
@@ -540,10 +567,6 @@ def rungame(replay=None, online=False, map=None, player_index=0, replay_filename
                     screen_real.blit(hud_hint2,(10*zoom,400*zoom))
                 else:
                     screen_real.blit(hud_hint5,(10*zoom,400*zoom))
-
-
-            if direction=="<":
-                screen_real.blit(hud_hint3,(10*zoom,440*zoom))
 
             if direction==">":
                 screen_real.blit(hud_hint4,(10*zoom,440*zoom))
@@ -701,6 +724,21 @@ def menu(options,fnt=36,row=50, heading="Menu", h1=45, top=150,subtitle=""):
                 if type(an_option)==tuple:
                     an_option=an_option[1]
                 return an_option
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                px,py=pygame.mouse.get_pos()
+                if pygame.mouse.get_pressed()[0]:
+                    for option_i in range(len(options)):
+                        if pygame.Rect(0*zoom,(top-pad+option_i*row)*zoom,640*zoom,(fnt+2*pad)*zoom).collidepoint(px,py):
+                            option=option_i
+                            an_option=options[option]
+                            if type(an_option)==tuple:
+                                an_option=an_option[1]
+                            return an_option
+            elif event.type == pygame.MOUSEMOTION:
+                px,py=pygame.mouse.get_pos()
+                for option_i in range(len(options)):
+                    if pygame.Rect(0*zoom,(top-pad+option_i*row)*zoom,640*zoom,(fnt+2*pad)*zoom).collidepoint(px,py):
+                        option=option_i
             elif event.type == pygame.KEYDOWN and event.key==pygame.K_ESCAPE:
                 return None
             elif event.type == pygame.KEYDOWN and event.key==pygame.K_UP:
@@ -812,16 +850,16 @@ def playbymail():
             committed_green=move_green["committed"]
             committed=[[[] for u in range(6)] for t in range(FPS*SECONDS)]
             for t in range(FPS*SECONDS):
-                for redunit in [0,1,2]:
+                for redunit in range(0,len(units)/2):
                     committed[t][redunit]=committed_red[t][redunit]
-                for greenunit in [3,4,5]:
+                for greenunit in range(len(units)/2,len(units)):
                     committed[t][greenunit]=committed_green[t][greenunit]
             with open(mapname+".map.json") as loadfile:
                 map_s=loadfile.read()
             mapcontent=json.loads(map_s)
             mapcontent=[pygame.Rect(a,b) for (a,b) in mapcontent]
             replay_filename=".".join([mapname,move_green["name"],move_red["name"]])
-            rungame((committed,mapcontent),replay_filename=replay_filename)
+            rungame((committed,mapcontent),replay_filename=replay_filename,names=(move_red["name"],move_green["name"]))
 
 
 
